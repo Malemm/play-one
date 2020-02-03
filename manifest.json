@@ -1,0 +1,37 @@
+{
+    "manifest_version": 2,
+
+    "name": "Play-One",
+
+    "version": "1.0.0",
+
+    "description": "Play only one video or audio at a time in the browser.",
+
+    "author": "Mutum Malemnganba",
+
+    "permissions": ["tabs", "webNavigation"],
+
+    "content_scripts": [
+        {
+            "matches": ["http://*/*"],
+            "js": ["content.js"],
+            "run_at": "document_start"
+        }
+    ],
+
+    "background": {
+        "scripts": ["background.js"]
+    },
+
+    "browser_action": {
+        "default_icon": "images/icon_48.png",
+        "default_popup": "pop_ui.html",
+        "default_title": "Play-One"
+    },
+    
+    "icons": {
+        "16": "images/icon_16.png",
+        "48": "images/icon_48.png",
+        "128": "images/icon_128.png"
+    }
+}

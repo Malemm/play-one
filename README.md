@@ -1,2 +1,2 @@
 # play-one
-Play only one media at a time in the browser.
+Play only one video or audio at a time in the browser.
