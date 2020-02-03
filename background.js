@@ -89,23 +89,19 @@ function handleOnTabActivated(tab) {
 }
 
 function handleOnTabRemoved(tabId) {
-    if (setOfTabs.has(tabId)) {
-        setOfTabs.delete(tabId);
-        if(setOfTabs.size>0){
-            chrome.browserAction.setBadgeText({
-                text: "" + setOfTabs.size
-            });
-        }else {
-            chrome.browserAction.setBadgeText({
-                text: ""
-            });
-        }
-    }
+    forgetTab(tabId);
 }
 
 function handleOnURLchanged(tab) {
-    if (setOfTabs.has(tab.tabId)) {
-        setOfTabs.delete(tab.tabId);
+    forgetTab(tab.id);
+}
+
+function forgetTab(tabId){
+    if(tabId ===  playingTabId){
+        playingTabId = undefined;
+    }
+    if (setOfTabs.has(tabId)) {
+        setOfTabs.delete(tabId);
         if(setOfTabs.size>0){
             chrome.browserAction.setBadgeText({
                 text: "" + setOfTabs.size
