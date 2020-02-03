@@ -50,7 +50,7 @@ function handleContentMessage(status, sender) {
 
     } else if (status === MediaStatus["ended"]) {
 
-        // remove the playingTabId if media has ended so that 2.1 will fail if media is replayed again
+        // remove the playingTabId if media has ended so that 2.1 will fail if media is replayed again in the same focused tab
         if (sender.tab.id === playingTabId){
             playingTabId = undefined;
         }
@@ -79,8 +79,11 @@ function handleOnTabActivated(tab) {
         if (playingTabId !== undefined) {
             chrome.tabs.sendMessage(playingTabId, Action["pause"]);
         }
-        playingTabId = focusedTabId;
-        chrome.tabs.sendMessage(playingTabId, Action["play"]);
+
+        // playingTabId set to undefined so that 2.1 will fail if this is the tab we are telling now to play
+        // this variable as well as badge text will be updated after 2.1
+        playingTabId = undefined;
+        chrome.tabs.sendMessage(focusedTabId, Action["play"]);
     }
     
 }
