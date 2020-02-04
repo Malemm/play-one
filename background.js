@@ -1,5 +1,14 @@
 /* Background Script */
-import {Action, MediaStatus} from constants;
+
+const ACTION = {
+    play : 0,
+    pause : 1
+}
+
+const MEDIASTATUS = {
+    played :0,
+    ended :1
+}
 
 chrome.runtime.onMessage.addListener(handleContentMessage);
 chrome.tabs.onActivated.addListener(handleOnTabActivated);

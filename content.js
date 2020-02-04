@@ -1,57 +1,45 @@
-/* Content Script */
-import {Action, MediaStatus} from constants;
+/* Content Script 
+This injects handler methods to document DOM and serves only as mediator between those handlers and background script.
+*/
 
-// store currently playing media object in the current tab
-let currentRunningMedia;
+/*******************************************************************/
+// insert the content of handlers.js to the page DOM
+// handlers.js contains event handlers of media onplay and onended
+let h = document.createElement('script');
+h.src = chrome.runtime.getURL('handlers.js');
+h.onload = function() {
+    this.remove();
+};
+(document.head || document.documentElement).appendChild(h);
+/*******************************************************************/
 
-document.addEventListener("play", handleOnPlay);
-document.addEventListener("ended", handleOnEnded);
+const ACTION = {
+    play : 0,
+    pause : 1
+}
+
+const MEDIASTATUS = {
+    played :0,
+    ended :1
+}
+
+const PLAY1EVENT2CONTENT = 'playOneEvent_toContent';
+const PLAY1EVENT2PAGE = 'playOneEvent_toPage';
+
+document.addEventListener("play", handleOnPlayInDocument);
+document.addEventListener("ended", handleOnEndedInDocument);
+document.addEventListener(PLAY1EVENT2CONTENT, handlePlayOnePageEvent);
 chrome.runtime.onMessage.addListener(handleBackgroundMessage);
 
+function handlePlayOnePageEvent(e){
+    // send media status directly to background script
+    let mediaStatus = e.mediaStatus;
+    chrome.runtime.sendMessage(mediaStatus);
+}
+
 function handleBackgroundMessage(action){
-    if(action === Action.play){
-        if(currentRunningMedia !== undefined){
-            currentRunningMedia.play();
-        }
-
-    }else if(action === Action.pause){
-        if(currentRunningMedia !== undefined){
-            currentRunningMedia.pause();
-        }
-    }
+    // send action directly to page handler
+    document.dispatchEvent(new CustomEvent(PLAY1EVENT2PAGE, {mediaAction: action}));
 }
 
-function handleOnPlay(e){
-    if(e.nodeName === "VIDEO" || e.nodeName === "AUDIO"){
 
-        // if currentRunningMedia exists
-        if(currentRunningMedia !== undefined){
-
-            //currentRunningMedia is another media object and is playing, content script will pause it 
-            if(currentRunningMedia !== e.target && currentRunningMedia.paused === false){
-                currentRunningMedia.pause();
-
-            }
-
-        //currentRunningMedia in this tab is not found, send message to background
-        }else {
-            chrome.runtime.sendMessage(MediaStatus["played"]);
-            
-        }
-
-        currentRunningMedia = e.target;
-        
-    }
-
-}
-
-function handleOnEnded(e){
-    if(e.nodeName === "VIDEO" || e.nodeName === "AUDIO"){
-        if(e.target === currentRunningMedia){
-            currentRunningMedia = undefined;
-            chrome.runtime.sendMessage(MediaStatus["ended"]);
-        }
-
-    }
-
-}
