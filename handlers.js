@@ -14,10 +14,16 @@ const PLAY1EVENT2PAGE = 'playOneEvent_toPage';
 // this variable will have the media object only if it is playing at any point of time
 let currentRunningMedia;
 
+document.addEventListener("play", handleOnPlayInDocument);
+document.addEventListener("ended", handleOnEndedInDocument);
 document.addEventListener(PLAY1EVENT2PAGE, handlePlayOneContentEvent);
+
+console.log("hello");
 
 function handleOnPlayInDocument(e){
 
+    console.log(e.nodeName);
+    console.log(e.nodeName === "VIDEO" || e.nodeName === "AUDIO");
     if(e.nodeName === "VIDEO" || e.nodeName === "AUDIO"){
 
         // if currentRunningMedia exists

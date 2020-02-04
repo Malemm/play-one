@@ -26,8 +26,6 @@ const MEDIASTATUS = {
 const PLAY1EVENT2CONTENT = 'playOneEvent_toContent';
 const PLAY1EVENT2PAGE = 'playOneEvent_toPage';
 
-document.addEventListener("play", handleOnPlayInDocument);
-document.addEventListener("ended", handleOnEndedInDocument);
 document.addEventListener(PLAY1EVENT2CONTENT, handlePlayOnePageEvent);
 chrome.runtime.onMessage.addListener(handleBackgroundMessage);
 
