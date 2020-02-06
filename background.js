@@ -1,13 +1,12 @@
 /* Background Script */
-
 const ACTION = {
-    play : 0,
-    pause : 1
+    play: 0,
+    pause: 1,
+    reload: 2
 }
-
 const MEDIASTATUS = {
-    played :0,
-    ended :1
+    played: 0,
+    ended: 1
 }
 
 chrome.runtime.onMessage.addListener(handleContentMessage);
@@ -25,12 +24,12 @@ chrome.browserAction.setBadgeBackgroundColor({
 
 function handleContentMessage(status, sender) {
 
-    if (status === MediaStatus["played"]) {
+    if (status === MEDIASTATUS.played) {
 
         // 1. media started playing in unfocused tab
         if (sender.tab.id !== focusedTabId){
             
-            chrome.tabs.sendMessage(sender.tab.id, Action["pause"]);
+            chrome.tabs.sendMessage(sender.tab.id, {action: ACTION.pause});
 
             if (!setOfTabs.has(sender.tab.id)) {
                 setOfTabs.add(sender.tab.id);
@@ -43,8 +42,8 @@ function handleContentMessage(status, sender) {
         else {
 
             // 2.1 pause if there is another currently playing media
-            if(playingTabId !== undefined){
-                chrome.tabs.sendMessage(playingTabId, Action["pause"]);
+            if(sender.tab.id !== playingTabId && playingTabId !== undefined){
+                chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
             }
             
             playingTabId = sender.tab.id;
@@ -57,7 +56,7 @@ function handleContentMessage(status, sender) {
             }
         }
 
-    } else if (status === MediaStatus["ended"]) {
+    } else if (status === MEDIASTATUS.ended) {
 
         // remove the playingTabId if media has ended so that 2.1 will fail if media is replayed again in the same focused tab
         if (sender.tab.id === playingTabId){
@@ -77,22 +76,23 @@ function handleContentMessage(status, sender) {
             }
 
         }
+    } else if(status === MEDIASTATUS.urlUpdate){
+        handleOnURLchanged(sender.tab.id);
     }
 }
 
 function handleOnTabActivated(tab) {
 
     focusedTabId = tab.tabId;
-    // focused tab has known to play media and it is not the currently playing tab
+    // if focused tab has known to play media and it is not the currently playing tab
     if (setOfTabs.has(focusedTabId) && focusedTabId !== playingTabId) {
         if (playingTabId !== undefined) {
-            chrome.tabs.sendMessage(playingTabId, Action["pause"]);
+            chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
         }
 
-        // playingTabId set to undefined so that 2.1 will fail if this is the tab we are telling now to play
-        // this variable as well as badge text will be updated after 2.1
-        playingTabId = undefined;
-        chrome.tabs.sendMessage(focusedTabId, Action["play"]);
+        // playingTabId is now focusedTabId; 2.1 should not execute on played message from content script because of the consequence of below play message
+        playingTabId = focusedTabId;
+        chrome.tabs.sendMessage(focusedTabId, {action: ACTION.play});
     }
     
 }
@@ -102,11 +102,13 @@ function handleOnTabRemoved(tabId) {
 }
 
 function handleOnURLchanged(tab) {
-    forgetTab(tab.id);
+    chrome.tabs.sendMessage(tab.tabId, {action: ACTION.reload, url: tab.url});
+    forgetTab(tab.tabId);
+    console.log("url updated "+tab.url+" "+tab.transitionType);
 }
 
 function forgetTab(tabId){
-    if(tabId ===  playingTabId){
+    if(tabId === playingTabId){
         playingTabId = undefined;
     }
     if (setOfTabs.has(tabId)) {
