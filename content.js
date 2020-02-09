@@ -4,9 +4,10 @@ const ACTION = {
     pause: 1,
     reload: 2
 }
-const MEDIASTATUS = {
+const MEDIAEVENT = {
     played: 0,
-    ended: 1
+    ended: 1,
+    paused: 2
 }
 const LIGHTMODE = 0;
 const FULLMODE = 1;
@@ -74,6 +75,16 @@ function registerMedia(){
             if(currentMedia !== undefined || currentMedia !== null){
                 currentMedia.addEventListener("play", handlePlayLight);
                 currentMedia.addEventListener("ended", handleEndedLight);
+                // register video in the background
+                // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
+                if(currentMedia.paused === true && currentMedia.readyState === 4){
+                    currentMedia.play();
+                    currentMedia.pause();
+                }
+                else if (currentMedia.paused ===  false){
+                    currentMedia.pause();
+                    currentMedia.play();
+                }
             }
 
             break;
@@ -84,6 +95,17 @@ function registerMedia(){
             mediaList.forEach(m => {
                 m.addEventListener("play", handleOnPlayFull);
                 m.addEventListener("ended", handleOnEndedFull);
+
+                // register video in the background
+                // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
+                if(m.paused === true && m.readyState === 4){
+                    m.play();
+                    m.pause();
+                }
+                else if (m.paused ===  false){
+                    m.pause();
+                    m.play();
+                }
             });
 
             break;
@@ -91,11 +113,11 @@ function registerMedia(){
 }
 
 function handlePlayLight(){
-    chrome.runtime.sendMessage(MEDIASTATUS.played);
+    chrome.runtime.sendMessage(MEDIAEVENT.played);
 }
 
 function handleEndedLight(){
-    chrome.runtime.sendMessage(MEDIASTATUS.ended);
+    chrome.runtime.sendMessage(MEDIAEVENT.ended);
 }
 
 function handleOnPlayFull(e){
@@ -109,7 +131,7 @@ function handleOnPlayFull(e){
         }
     //currentMedia is not found yet or undefined
     }else {
-        chrome.runtime.sendMessage(MEDIASTATUS.played);    
+        chrome.runtime.sendMessage(MEDIAEVENT.played);    
     }
         
     currentMedia = e.target;
@@ -117,7 +139,7 @@ function handleOnPlayFull(e){
 
 function handleOnEndedFull(e){
     if(e.target === currentMedia){
-        chrome.runtime.sendMessage(MEDIASTATUS.ended);
+        chrome.runtime.sendMessage(MEDIAEVENT.ended);
         // undefine currentMedia to notify background if it replays
         currentMedia = undefined;
     }
