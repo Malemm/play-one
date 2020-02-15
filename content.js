@@ -15,6 +15,7 @@ let mode = FULLMODE;
 let mediaList;
 let currentMedia;
 let currentURL;
+let userPaused = false;
 
 if(mode){
     console.log("Play-One | Running Full Mode")
@@ -25,7 +26,11 @@ else{
 
 chrome.runtime.onMessage.addListener((message) => {
     if(message.action === ACTION.play && currentMedia !== undefined){
-        currentMedia.play();
+        // play only if user did not pause
+        if(!userPaused){
+            currentMedia.play();
+        }
+        console.log("action play userPaused: "+userPaused);
     }
     else if(message.action === ACTION.pause && currentMedia !== undefined){
         currentMedia.pause();
@@ -35,6 +40,10 @@ chrome.runtime.onMessage.addListener((message) => {
             currentURL = message.url;
             reloadContent();
         }
+    }
+    else if(message.action === "am_i_focused"){
+        userPaused = message.focused;
+        console.log("action am_i_focused userPaused: "+userPaused);
     }
 });
 
@@ -47,25 +56,26 @@ document.addEventListener('readystatechange', e => {
 function reloadContent(){
 
     if(mode === FULLMODE){
-        console.log("reload media elements: "+mediaList.length)
         mediaList.forEach(m => {
             m.removeEventListener("play", handleOnPlayFull);
             m.removeEventListener("play", handleOnEndedFull);
+            m.removeEventListener("pause", handleOnPause);
         });
 
         currentMedia = undefined;
     }
     else {
         if(currentMedia !== undefined){
-            currentMedia.removeEventListener("play", handlePlayLight);
-            currentMedia.removeEventListener("ended", handleEndedLight);
+            currentMedia.removeEventListener("play", handleOnPlayLight);
+            currentMedia.removeEventListener("ended", handleOnEndedLight);
+            currentMedia.removeEventListener("pause", handleOnPause);
             currentMedia = undefined;
         }
     }
 
     registerMedia();
 
-    console.log("content reloaded on url update");
+    // console.log("action reload content on url update");
 }
 
 function registerMedia(){
@@ -73,8 +83,9 @@ function registerMedia(){
         case LIGHTMODE:
             currentMedia = document.querySelector("VIDEO");
             if(currentMedia !== undefined || currentMedia !== null){
-                currentMedia.addEventListener("play", handlePlayLight);
-                currentMedia.addEventListener("ended", handleEndedLight);
+                currentMedia.addEventListener("play", handleOnPlayLight);
+                currentMedia.addEventListener("ended", handleOnEndedLight);
+            
                 // register video in the background
                 // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
                 if(currentMedia.paused === true && currentMedia.readyState === 4){
@@ -85,13 +96,16 @@ function registerMedia(){
                     currentMedia.pause();
                     currentMedia.play();
                 }
+
+                currentMedia.addEventListener("pause", handleOnPause);
+
             }
 
             break;
         
         case FULLMODE:
             mediaList = document.querySelectorAll("VIDEO", "AUDIO");
-            console.log("media elements: "+mediaList.length)
+            // console.log("media elements: "+mediaList.length)
             mediaList.forEach(m => {
                 m.addEventListener("play", handleOnPlayFull);
                 m.addEventListener("ended", handleOnEndedFull);
@@ -106,24 +120,27 @@ function registerMedia(){
                     m.pause();
                     m.play();
                 }
+
+                m.addEventListener("pause", handleOnPause);
             });
 
             break;
     }
 }
 
-function handlePlayLight(){
+function handleOnPlayLight(){
     chrome.runtime.sendMessage(MEDIAEVENT.played);
+    userPaused = false;
 }
 
-function handleEndedLight(){
+function handleOnEndedLight(){
     chrome.runtime.sendMessage(MEDIAEVENT.ended);
 }
 
 function handleOnPlayFull(e){
     // if currentMedia exists
-    console.log("currentMedia");
-    console.log(currentMedia);
+    // console.log("currentMedia");
+    // console.log(currentMedia);
     if(currentMedia !== undefined){
         //if currentMedia is not the trigering one and is already playing, content script will pause it 
         if(currentMedia !== e.target && currentMedia.paused === false){
@@ -135,6 +152,7 @@ function handleOnPlayFull(e){
     }
         
     currentMedia = e.target;
+    userPaused = false;
 }
 
 function handleOnEndedFull(e){
@@ -142,5 +160,16 @@ function handleOnEndedFull(e){
         chrome.runtime.sendMessage(MEDIAEVENT.ended);
         // undefine currentMedia to notify background if it replays
         currentMedia = undefined;
+    }
+}
+
+function handleOnPause(e){
+    
+    // distinguish between user and background pause action; if tab is focused then user is pausing
+    // if user pauses, then this media should not be played by background when user navigates back to this tab
+    // e.target must be currentMedia to exclude other media paused by content in this very tab
+    if(e.target === currentMedia){
+        // background will send the message back, parameter in callback always come as undefined so have to do this way
+        chrome.runtime.sendMessage("am_i_focused");
     }
 }

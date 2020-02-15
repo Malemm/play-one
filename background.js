@@ -23,7 +23,7 @@ chrome.browserAction.setBadgeBackgroundColor({
     color: [47, 47, 47, 255]
 });
 
-function handleContentMessage(status, sender) {
+function handleContentMessage(status, sender, sendResponse) {
 
     if (status === MEDIAEVENT.played) {
 
@@ -72,7 +72,16 @@ function handleContentMessage(status, sender) {
             });
         }
 
-    } 
+    } else if (status === "am_i_focused") {
+
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            let focused = false;
+            if(tabs[0].id === sender.tab.id) {
+                focused = true;
+            }
+            chrome.tabs.sendMessage(sender.tab.id, {action: "am_i_focused", focused: focused});
+        });
+    }
 }
 
 function handleOnTabActivated(tab) {
