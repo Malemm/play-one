@@ -24,7 +24,7 @@
     },
 
     "web_accessible_resources": [
-        "handlers.js"
+        "common.js"
     ],
 
     "browser_action": {
