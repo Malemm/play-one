@@ -45,6 +45,12 @@ chrome.runtime.onMessage.addListener((message) => {
         userPaused = message.focused;
         console.log("action am_i_focused userPaused: "+userPaused);
     }
+    // to check by background if media in this tab was paused by user
+    // to either pause the media in the unfocused tab (playingTabId) or not
+    else if(message.action === "continue_handle_on_tab_activated"){
+        chrome.runtime.sendMessage({mediaStatus: "continue_handle_on_tab_activated", userPaused: userPaused});
+        console.log("action continue_handle_on_tab_activated userPaused: "+userPaused);
+    }
 });
 
 document.addEventListener('readystatechange', e => {
@@ -105,7 +111,7 @@ function registerMedia(){
         
         case FULLMODE:
             mediaList = document.querySelectorAll("VIDEO", "AUDIO");
-            // console.log("media elements: "+mediaList.length)
+            // console.log("media elements found: "+mediaList.length)
             mediaList.forEach(m => {
                 m.addEventListener("play", handleOnPlayFull);
                 m.addEventListener("ended", handleOnEndedFull);
@@ -129,12 +135,12 @@ function registerMedia(){
 }
 
 function handleOnPlayLight(){
-    chrome.runtime.sendMessage(MEDIAEVENT.played);
+    chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});
     userPaused = false;
 }
 
 function handleOnEndedLight(){
-    chrome.runtime.sendMessage(MEDIAEVENT.ended);
+    chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
 }
 
 function handleOnPlayFull(e){
@@ -148,7 +154,7 @@ function handleOnPlayFull(e){
         }
     //currentMedia is not found yet or undefined
     }else {
-        chrome.runtime.sendMessage(MEDIAEVENT.played);    
+        chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});    
     }
         
     currentMedia = e.target;
@@ -157,7 +163,7 @@ function handleOnPlayFull(e){
 
 function handleOnEndedFull(e){
     if(e.target === currentMedia){
-        chrome.runtime.sendMessage(MEDIAEVENT.ended);
+        chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
         // undefine currentMedia to notify background if it replays
         currentMedia = undefined;
     }
@@ -170,6 +176,6 @@ function handleOnPause(e){
     // e.target must be currentMedia to exclude other media paused by content in this very tab
     if(e.target === currentMedia){
         // background will send the message back, parameter in callback always come as undefined so have to do this way
-        chrome.runtime.sendMessage("am_i_focused");
+        chrome.runtime.sendMessage({mediaStatus: "am_i_focused"});
     }
 }
