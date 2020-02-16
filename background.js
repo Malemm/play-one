@@ -14,10 +14,12 @@ chrome.runtime.onMessage.addListener(handleContentMessage);
 chrome.tabs.onActivated.addListener(handleOnTabActivated);
 chrome.tabs.onRemoved.addListener(handleOnTabRemoved);
 chrome.webNavigation.onHistoryStateUpdated.addListener(handleOnURLchanged);
+chrome.browserAction.onClicked.addListener(toggleExclusion);
 
 let playingTabId;
 let focusedTabId;
 let setOfTabs = new Set();
+let exclusionSet = new Set();
 
 chrome.browserAction.setBadgeBackgroundColor({
     color: [47, 47, 47, 255]
@@ -100,8 +102,31 @@ function handleContentMessage(status, sender) {
                 chrome.tabs.sendMessage(playingTabId, {action: ACTION.play});
             }
         }
+    } else if (status.mediaStatus === "check_site_exclusion"){
+        console.log(sender.tab.url);
+        let site = getSite(sender.tab.url);
+        console.log(site);
+        let excluded = false;
+        if (exclusionSet.has(site)){
+            excluded = true;
+        }
+        chrome.tabs.sendMessage(sender.tab.id, {action: "check_site_exclusion", exclusion: excluded});
     }
 }
+
+function getSite (a) {
+    let b = a.indexOf("//") + 2;
+    let c = a.indexOf("/", b);
+    return 0 < c ? a.substring(b, c) : ((c = a.indexOf("?", b)), 0 < c ? a.substring(b, c) : a.substring(b));
+}
+
+(function getExclusionSet(){
+    chrome.storage.sync.get({play1ExcludedSites: []}, function(data){
+        let excludedSites = data.play1ExcludedSites || [];
+        excludedSites.forEach(s => exclusionSet.add(s));
+    });
+    console.log(exclusionSet);
+})();
 
 function handleOnTabActivated(tab) {
 
@@ -118,7 +143,17 @@ function handleOnTabActivated(tab) {
     //     chrome.tabs.sendMessage(playingTabId, {action: ACTION.play});
     // }
 
-    chrome.tabs.sendMessage(focusedTabId, {action: "continue_handle_on_tab_activated"});
+    if(setOfTabs.has(focusedTabId)){
+        chrome.tabs.sendMessage(focusedTabId, {action: "continue_handle_on_tab_activated"});
+    }
+
+    let site = getSite(tab.url);
+    if(exclusionSet.has(site)){
+        chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
+    }
+    else {
+        chrome.browserAction.setIcon({path : {"48": "images/icon_48.png"}});
+    }
     
 }
 
@@ -145,5 +180,17 @@ function forgetTab(tabId){
         chrome.browserAction.setBadgeText({
             text: ""
         });
+    }
+}
+
+function toggleExclusion(tab){
+    let site = getSite(tab.url);
+    if(exclusionSet.has(site)){
+        exclusionSet.delete(site);
+        chrome.browserAction.setIcon({path : {"48": "images/icon_48.png"}});
+    }
+    else {
+        exclusionSet.add(site);
+        chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
     }
 }

@@ -16,6 +16,7 @@ let mediaList;
 let currentMedia;
 let currentURL;
 let userPaused = false;
+let siteExcluded = false;
 
 if(mode){
     console.log("Play-One | Running Full Mode")
@@ -51,11 +52,21 @@ chrome.runtime.onMessage.addListener((message) => {
         chrome.runtime.sendMessage({mediaStatus: "continue_handle_on_tab_activated", userPaused: userPaused});
         console.log("action continue_handle_on_tab_activated userPaused: "+userPaused);
     }
+    // response from background if site is excluded or not
+    else if(message.action === "check_site_exclusion"){
+        siteExcluded = message.exclusion;
+        if(!siteExcluded){
+            registerMedia();
+        }
+        console.log("action check_site_exclusion siteExcluded: "+siteExcluded);
+    }
 });
 
 document.addEventListener('readystatechange', e => {
     if (e.target.readyState === "complete") {
-        registerMedia();
+        // check with background if this site is excluded
+        chrome.runtime.sendMessage({mediaStatus: "check_site_exclusion"});
+        // registerMedia();
     }
 });
 
@@ -88,6 +99,9 @@ function registerMedia(){
     switch (mode){
         case LIGHTMODE:
             currentMedia = document.querySelector("VIDEO");
+            if(currentMedia === undefined){
+                currentMedia = document.querySelector("AUDIO");
+            }
             if(currentMedia !== undefined || currentMedia !== null){
                 currentMedia.addEventListener("play", handleOnPlayLight);
                 currentMedia.addEventListener("ended", handleOnEndedLight);

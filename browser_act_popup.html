@@ -1,0 +1,98 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Play-One</title>
+        <style>
+            
+            @font-face {
+                font-family: roboto;
+                src: url(fonts/Roboto-Regular.ttf);
+            }
+            
+            @font-face {
+                font-family: roboto;
+                src: url(fonts/Roboto-Black.ttf);
+                font-weight: bold;
+            }
+            
+            body {
+                background-color:#eee6ff;
+                min-width: 20em;
+                min-height: 18em;
+            }
+            
+            h3   {
+                font-family: "roboto", sans-serif;
+                font-size: 1.3em;
+                text-align: center;
+                
+            }
+            
+            #desc {
+                color: #282828;
+                background-color: #f2bcf8;
+                font-family: "roboto", sans-serif;
+                font-size: 1.0em;
+                text-align: center;
+                align-content: center;
+                padding-top: 0.5em;
+                padding-bottom: 0.5em;
+            }
+            
+            #play {
+                color: #282828;
+                font-weight: lighter;
+            }
+            
+            #one {
+                color: #282828;
+                font-weight: bold;
+            }
+
+            #mode_option {
+                clear: both;
+                float: left;
+            }
+
+            #exclude_option {
+                clear: both;
+                float: left;
+            }
+
+            #mode {
+                clear: both;
+                float: left;
+            }
+
+            #exclude {
+                clear: both;
+                float: left;
+            }
+
+            #option {
+                padding-bottom: 8.0em;
+            }
+        
+            
+        </style>
+        
+        <script src="popup.js"></script>
+    </head>
+
+    <body>
+        
+        <h3><span id="play">Play-</span><span id="one">One</span></h3>
+        <p id="desc">Play one video or audio at a time.</p>
+        
+        <div id="option">
+            <p id="mode_option">Light mode<br>(only if the computer is really slow!)</p>
+            <input type="checkbox" id="mode" name="mode">
+
+            <br><br>
+            
+            <p id="exclude_option">Exclude this site</p>
+            <input type="checkbox" id="exclude" name="exclude">
+        </div>
+
+    </body>
+</html>
