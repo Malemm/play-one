@@ -152,6 +152,10 @@ function handleOnPlayFull(e){
         if(currentMedia !== e.target && currentMedia.paused === false){
             currentMedia.pause();
         }
+        // user plays the media now which was previously paused
+        else if (currentMedia === e.target && userPaused){
+            chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});  
+        }
     //currentMedia is not found yet or undefined
     }else {
         chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});    

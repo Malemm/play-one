@@ -45,8 +45,9 @@ function handleContentMessage(status, sender) {
             if(sender.tab.id !== playingTabId && playingTabId !== undefined){
                 chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
             }
-            
+            console.log("1 playing tab id: "+playingTabId);
             playingTabId = sender.tab.id;
+            console.log("2 playing tab id: "+playingTabId);
 
             setOfTabs.add(playingTabId);
             chrome.browserAction.setBadgeText({
@@ -76,8 +77,10 @@ function handleContentMessage(status, sender) {
 
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             let focused = false;
-            if(tabs[0].id === sender.tab.id) {
-                focused = true;
+            if(tabs !== undefined){
+                if(tabs[0].id === sender.tab.id) {
+                    focused = true;
+                }
             }
             chrome.tabs.sendMessage(sender.tab.id, {action: "am_i_focused", focused: focused});
         });
