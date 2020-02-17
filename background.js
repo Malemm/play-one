@@ -154,22 +154,27 @@ function handleOnTabRemoved(tabId) {
 }
 
 function handleOnURLchanged(tab) {
-    let site = getSite(tab.url);
-    // tell content to reload media only if the site is not excluded
-    if(!exclusionSet.has(site)){
-        chrome.tabs.sendMessage(tab.tabId, {action: ACTION.reload, url: tab.url});
-        forgetTab(tab.tabId);
-        console.log("url updated "+tab.url+" "+tab.transitionType);
 
-        if(setOfTabs.has(tab.id)){
-            updateIconTextOnEnabledSiteWithMedia(site);
+    if(tab.transitionType !== "auto_subframe"){
+
+        let site = getSite(tab.url);
+        // tell content to reload media only if the site is not excluded
+        if(!exclusionSet.has(site)){
+            chrome.tabs.sendMessage(tab.tabId, {action: ACTION.reload, url: tab.url});
+            forgetTab(tab.tabId);
+            console.log("url updated "+tab.url+" "+tab.transitionType);
+    
+            if(setOfTabs.has(tab.id)){
+                updateIconTextOnEnabledSiteWithMedia(site);
+            }
+            else {
+                updateIconTextOnEnabledSiteWithNoMedia(site);
+            }
         }
         else {
-            updateIconTextOnEnabledSiteWithNoMedia(site);
+            updateIconTextOnDisabledSite(site);
         }
-    }
-    else {
-        updateIconTextOnDisabledSite(site);
+
     }
 }
 
