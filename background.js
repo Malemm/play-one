@@ -20,10 +20,11 @@ let playingTabId;
 let focusedTabId;
 let setOfTabs = new Set();
 let exclusionSet = new Set();
+let doubleClickPressedOnce = false;
 
-chrome.browserAction.setBadgeBackgroundColor({
-    color: [47, 47, 47, 255]
-});
+// chrome.browserAction.setBadgeBackgroundColor({
+//     color: [47, 47, 47, 255]
+// });
 
 function handleContentMessage(status, sender) {
 
@@ -36,9 +37,9 @@ function handleContentMessage(status, sender) {
             chrome.tabs.sendMessage(sender.tab.id, {action: ACTION.pause});
 
             setOfTabs.add(sender.tab.id);
-            chrome.browserAction.setBadgeText({
-                text: "" + setOfTabs.size
-            });
+            // chrome.browserAction.setBadgeText({
+            //     text: "" + setOfTabs.size
+            // });
         }
         // 2. media started playing in now focused tab
         else {
@@ -52,9 +53,9 @@ function handleContentMessage(status, sender) {
             console.log("2 playing tab id: "+playingTabId);
 
             setOfTabs.add(playingTabId);
-            chrome.browserAction.setBadgeText({
-                text: "" + setOfTabs.size
-            });
+            // chrome.browserAction.setBadgeText({
+            //     text: "" + setOfTabs.size
+            // });
         }
 
     } else if (status.mediaStatus === MEDIAEVENT.ended) {
@@ -65,15 +66,15 @@ function handleContentMessage(status, sender) {
         }
 
         setOfTabs.delete(sender.tab.id);
-        if(setOfTabs.size>0){
-            chrome.browserAction.setBadgeText({
-                text: "" + setOfTabs.size
-            });
-        }else {
-            chrome.browserAction.setBadgeText({
-                text: ""
-            });
-        }
+        // if(setOfTabs.size>0){
+        //     chrome.browserAction.setBadgeText({
+        //         text: "" + setOfTabs.size
+        //     });
+        // }else {
+        //     chrome.browserAction.setBadgeText({
+        //         text: ""
+        //     });
+        // }
 
     } else if (status.mediaStatus === "am_i_focused") {
 
@@ -118,17 +119,6 @@ function handleContentMessage(status, sender) {
 function handleOnTabActivated(tab) {
 
     focusedTabId = tab.tabId;
-    // // if focused tab has known to play media and it is not the currently playing tab
-    // if (setOfTabs.has(focusedTabId) && focusedTabId !== playingTabId) {
-    //     if (playingTabId !== undefined) {
-    //         chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
-    //         // console.log("sending pause");
-    //     }
-
-    //     // playingTabId is now focusedTabId; 2.1 should not execute on played message from content script because of the consequence of below play message
-    //     playingTabId = focusedTabId;
-    //     chrome.tabs.sendMessage(playingTabId, {action: ACTION.play});
-    // }
 
     // for playing the media
     if(setOfTabs.has(focusedTabId)){
@@ -139,10 +129,10 @@ function handleOnTabActivated(tab) {
     chrome.tabs.get(tab.tabId, function(tab){
         let site = getSite(tab.url);
         if(exclusionSet.has(site)){
-            chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
+            updateIconTextOnDisabledSite(site);
         }
         else {
-            chrome.browserAction.setIcon({path : {"48": "images/icon_48.png"}});
+            updateIconTextOnEnabledSite(site);
         }
     });
     
@@ -167,32 +157,53 @@ function forgetTab(tabId){
         playingTabId = undefined;
     }
     setOfTabs.delete(tabId);
-    if(setOfTabs.size>0){
-        chrome.browserAction.setBadgeText({
-            text: "" + setOfTabs.size
-        });
-    }else {
-        chrome.browserAction.setBadgeText({
-            text: ""
-        });
-    }
+    // if(setOfTabs.size>0){
+    //     chrome.browserAction.setBadgeText({
+    //         text: "" + setOfTabs.size
+    //     });
+    // }else {
+    //     chrome.browserAction.setBadgeText({
+    //         text: ""
+    //     });
+    // }
 }
 
 function toggleExclusion(tab){
-    let site = getSite(tab.url);
+
+    if(doubleClickPressedOnce){
+        includeOrExcludeSite(tab.url);
+    }
+
+    doubleClickPressedOnce = true;
+
+    setTimeout(()=>{doubleClickPressedOnce = false}, 1000);
+
+}
+
+function includeOrExcludeSite(url){
+    let site = getSite(url);
     if(exclusionSet.has(site)){
         exclusionSet.delete(site);
-        chrome.browserAction.setIcon({path : {"48": "images/icon_48.png"}});
+        updateIconTextOnEnabledSite(site);
     }
     else {
         exclusionSet.add(site);
-        chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
+        updateIconTextOnDisabledSite(site);
     }
 
     // update the exclusion list
     let updatedlist = [...exclusionSet];
-    chrome.storage.sync.set({play1ExcludedSites: updatedlist}, getExclusionSet);
+    chrome.storage.sync.set({play1ExcludedSites: updatedlist});
+}
 
+function updateIconTextOnEnabledSite(url){
+    chrome.browserAction.setIcon({path : {"48": "images/icon_48.png"}});
+    chrome.browserAction.setTitle({title: "Double click to DISABLE on "+url+"\nPlay-One  [ Plays only one video/audio at a time ]"});
+}
+
+function updateIconTextOnDisabledSite(url){
+    chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
+    chrome.browserAction.setTitle({title: "Double click to ENABLE on "+url+"\nPlay-One  [ Plays only one video/audio at a time ]"});
 }
 
 
