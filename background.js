@@ -54,6 +54,8 @@ function handleContentMessage(status, sender) {
             console.log("2 playing tab id: "+playingTabId);
 
             setOfTabs.add(playingTabId);
+            const site = getSite(sender.url)
+            updateIconTextOnEnabledSiteWithMedia(site);
             // chrome.browserAction.setBadgeText({
             //     text: "" + setOfTabs.size
             // });
@@ -67,6 +69,9 @@ function handleContentMessage(status, sender) {
         }
 
         setOfTabs.delete(sender.tab.id);
+
+        const site = getSite(sender.url);
+        updateIconTextOnEnabledSiteWithNoMedia(site);
         // if(setOfTabs.size>0){
         //     chrome.browserAction.setBadgeText({
         //         text: "" + setOfTabs.size
@@ -133,7 +138,12 @@ function handleOnTabActivated(tab) {
             updateIconTextOnDisabledSite(site);
         }
         else {
-            updateIconTextOnEnabledSite(site);
+            if(setOfTabs.has(tab.id)){
+                updateIconTextOnEnabledSiteWithMedia(site);
+            }
+            else {
+                updateIconTextOnEnabledSiteWithNoMedia(site);
+            }
         }
     });
     
@@ -150,7 +160,13 @@ function handleOnURLchanged(tab) {
         chrome.tabs.sendMessage(tab.tabId, {action: ACTION.reload, url: tab.url});
         forgetTab(tab.tabId);
         console.log("url updated "+tab.url+" "+tab.transitionType);
-        updateIconTextOnEnabledSite(site);
+
+        if(setOfTabs.has(tab.id)){
+            updateIconTextOnEnabledSiteWithMedia(site);
+        }
+        else {
+            updateIconTextOnEnabledSiteWithNoMedia(site);
+        }
     }
     else {
         updateIconTextOnDisabledSite(site);
@@ -160,7 +176,12 @@ function handleOnURLchanged(tab) {
 function handleOnCompleted(tab){
     let site = getSite(tab.url);
     if(!exclusionSet.has(site)){
-        updateIconTextOnEnabledSite(site);
+        if(setOfTabs.has(tab.id)){
+            updateIconTextOnEnabledSiteWithMedia(site);
+        }
+        else {
+            updateIconTextOnEnabledSiteWithNoMedia(site);
+        }
     }
     else {
         updateIconTextOnDisabledSite(site);
@@ -186,7 +207,7 @@ function forgetTab(tabId){
 function toggleExclusion(tab){
 
     if(doubleClickPressedOnce){
-        includeOrExcludeSite(tab.url);
+        includeOrExcludeSite(tab.url, tab.id);
     }
 
     doubleClickPressedOnce = true;
@@ -195,11 +216,16 @@ function toggleExclusion(tab){
 
 }
 
-function includeOrExcludeSite(url){
+function includeOrExcludeSite(url, tabId){
     let site = getSite(url);
     if(exclusionSet.has(site)){
         exclusionSet.delete(site);
-        updateIconTextOnEnabledSite(site);
+        if(setOfTabs.has(tabId)){
+            updateIconTextOnEnabledSiteWithMedia(site);
+        }
+        else {
+            updateIconTextOnEnabledSiteWithNoMedia(site);
+        }
     }
     else {
         exclusionSet.add(site);
@@ -211,8 +237,13 @@ function includeOrExcludeSite(url){
     chrome.storage.sync.set({play1ExcludedSites: updatedlist});
 }
 
-function updateIconTextOnEnabledSite(url){
-    chrome.browserAction.setIcon({path : {"48": "images/icon_48.png"}});
+function updateIconTextOnEnabledSiteWithNoMedia(url){
+    chrome.browserAction.setIcon({path : {"48": "images/icon_48_active_no_media.png"}});
+    chrome.browserAction.setTitle({title: "Double click to DISABLE on "+url+"\nPlay-One  [ Plays only one video/audio at a time ]"});
+}
+
+function updateIconTextOnEnabledSiteWithMedia(url){
+    chrome.browserAction.setIcon({path : {"48": "images/icon_48_active_media.png"}});
     chrome.browserAction.setTitle({title: "Double click to DISABLE on "+url+"\nPlay-One  [ Plays only one video/audio at a time ]"});
 }
 
