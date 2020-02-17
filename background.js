@@ -15,6 +15,7 @@ chrome.tabs.onActivated.addListener(handleOnTabActivated);
 chrome.tabs.onRemoved.addListener(handleOnTabRemoved);
 chrome.webNavigation.onHistoryStateUpdated.addListener(handleOnURLchanged);
 chrome.browserAction.onClicked.addListener(toggleExclusion);
+chrome.webNavigation.onCompleted.addListener(handleOnCompleted);
 
 let playingTabId;
 let focusedTabId;
@@ -149,6 +150,20 @@ function handleOnURLchanged(tab) {
         chrome.tabs.sendMessage(tab.tabId, {action: ACTION.reload, url: tab.url});
         forgetTab(tab.tabId);
         console.log("url updated "+tab.url+" "+tab.transitionType);
+        updateIconTextOnEnabledSite(site);
+    }
+    else {
+        updateIconTextOnDisabledSite(site);
+    }
+}
+
+function handleOnCompleted(tab){
+    let site = getSite(tab.url);
+    if(!exclusionSet.has(site)){
+        updateIconTextOnEnabledSite(site);
+    }
+    else {
+        updateIconTextOnDisabledSite(site);
     }
 }
 
