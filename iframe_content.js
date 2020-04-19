@@ -10,16 +10,18 @@ const MEDIAEVENT = {
     paused: 2
 }
 
-let imediaList;
+let imediaList = [];
 let icurrentMedia;
 
 try{
-    if(!isParent){
-        window.addEventListener("message", handleParentMessage, false);
-        console.log("handle parent message");
+    if(isParent){
+        console.log("iframe add event listener");
     }
 }
 catch(e){
+    console.log("iframe catch");
+    console.log(e);
+    window.addEventListener("message", handleParentMessage, false);
 }
 
 async function handleParentMessage(e){
@@ -46,16 +48,20 @@ async function handleParentMessage(e){
 }
 
 try{
-    if(!isParent){
-        document.addEventListener('readystatechange', e => {
-            if (e.target.readyState === "complete") {
-                iregisterMedia();
-            }
-        });
-        console.log("this should not run");
+    if(isParent){
+        console.log("iframe add ready state change");
     }
 }
 catch(e){
+    console.log("iframe catch");
+    console.log(e);
+
+    document.addEventListener('readystatechange', e => {
+        if (e.target.readyState === "complete") {
+            iregisterMedia();
+        }
+    });
+
 }
 
 

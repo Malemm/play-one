@@ -14,7 +14,7 @@
 
 const isParent = true;
 
-let mediaList;
+let mediaList= [];
 let currentMedia;
 let currentURL;
 let userPaused = false;
@@ -93,12 +93,14 @@ document.addEventListener('readystatechange', e => {
 
 function reloadContent(){
 
-    mediaList.forEach(m => {
-        m.removeEventListener("play", handleOnPlay);
-        m.removeEventListener("play", handleOnEnded);
-        m.removeEventListener("pause", handleOnPause);
-    });
-
+    if(mediaList.length){
+        mediaList.forEach(m => {
+            m.removeEventListener("play", handleOnPlay);
+            m.removeEventListener("play", handleOnEnded);
+            m.removeEventListener("pause", handleOnPause);
+        });
+    }
+    
     currentMedia = undefined;
     currentIframe = undefined;
 
