@@ -14,8 +14,9 @@ let imediaList;
 let icurrentMedia;
 
 try{
-    if(!window.isParent){
+    if(!isParent){
         window.addEventListener("message", handleParentMessage, false);
+        console.log("handle parent message");
     }
 }
 catch(e){
@@ -35,7 +36,7 @@ async function handleParentMessage(e){
         case ACTION.pause:
             if(icurrentMedia){
                 icurrentMedia.removeEventListener("pause", ihandleOnPause);
-                await icurrentMedia.pause();
+                icurrentMedia.pause();
                 icurrentMedia.addEventListener("pause", ihandleOnPause);
             }
             break;
@@ -45,12 +46,13 @@ async function handleParentMessage(e){
 }
 
 try{
-    if(!window.isParent){
+    if(!isParent){
         document.addEventListener('readystatechange', e => {
             if (e.target.readyState === "complete") {
                 iregisterMedia();
             }
         });
+        console.log("this should not run");
     }
 }
 catch(e){
@@ -58,6 +60,7 @@ catch(e){
 
 
 async function iregisterMedia(){
+    console.log("iframe register media");
     imediaList = document.querySelectorAll("VIDEO", "AUDIO");
 
     imediaList.forEach(m => {
@@ -73,7 +76,7 @@ async function iregisterMedia(){
             if(played){
                 played.then(()=> m.pause())
                 .then(() => {
-                    m.addEventListener("pause", handleOnPause);
+                    m.addEventListener("pause", ihandleOnPause);
                     notAdded = false;
                 })
                 .catch(e => console.log(e));
@@ -83,9 +86,9 @@ async function iregisterMedia(){
             m.pause();
             m.play();
         }
-        
+
         if(notAdded){
-            m.addEventListener("pause", handleOnPause);
+            m.addEventListener("pause", ihandleOnPause);
         }
     });
 }
@@ -109,6 +112,8 @@ function ihandleOnPlay(e){
     }
         
     icurrentMedia = e.target;
+
+    console.log("iframe play");
 }
 
 function ihandleOnEnded(e){
@@ -117,10 +122,14 @@ function ihandleOnEnded(e){
         // undefine icurrentMedia to notify background if it replays
         icurrentMedia = undefined;
     }
+
+    console.log("iframe ended");
 }
 
 function ihandleOnPause(e){
     if(e.target === icurrentMedia){
         window.parent.postMessage({mediaStatus: MEDIAEVENT.paused}, "*");
     }
+
+    console.log("iframe pause");
 }
