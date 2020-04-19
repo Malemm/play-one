@@ -1,64 +1,85 @@
 /* Content Script */
-const ACTION = {
-    play: 0,
-    pause: 1,
-    reload: 2
-}
-const MEDIAEVENT = {
-    played: 0,
-    ended: 1,
-    paused: 2
-}
-const LIGHTMODE = 0;
-const FULLMODE = 1;
-let mode = FULLMODE;
+
+// these 2 const will come from iframe_content
+// const ACTION = {
+//     play: 0,
+//     pause: 1,
+//     reload: 2
+// }
+// const MEDIAEVENT = {
+//     played: 0,
+//     ended: 1,
+//     paused: 2
+// }
+
+const isParent = true;
+
 let mediaList;
 let currentMedia;
 let currentURL;
 let userPaused = false;
 let siteExcluded = false;
+// let iframeSet = new Set();
+let currentIframe;
 
-if(mode){
-    console.log("Play-One | Running Full Mode")
-}
-else{
-    console.log("Play-One | Running Light Mode")
-}
+chrome.runtime.onMessage.addListener(async message => {
+    switch (message.action) {
+        case ACTION.play:
+            if(currentMedia){
+                // play only if user did not pause
+                if(!userPaused){
+                    currentMedia.removeEventListener("play", handleOnPlay);
+                    let played = currentMedia.play();
+                    if(played){
+                        played.then(()=> currentMedia.addEventListener("play", handleOnPlay)).catch(e => console.log(e));
+                    }
+                }
+            }
+            else if(currentIframe){
+                // play only if user did not pause
+                if(!userPaused){
+                    currentIframe.postMessage({action: ACTION.play}, currentIframe.origin);
+                }
+            }
+            break;
 
-chrome.runtime.onMessage.addListener((message) => {
-    if(message.action === ACTION.play && currentMedia){
-        // play only if user did not pause
-        if(!userPaused){
-            currentMedia.play();
-        }
-        console.log("action play userPaused: "+userPaused);
-    }
-    else if(message.action === ACTION.pause && currentMedia){
-        currentMedia.pause();
-    }
-    else if(message.action === ACTION.reload){
-        if(message.url !== currentURL || currentURL === undefined){
-            currentURL = message.url;
-            reloadContent();
-        }
-    }
-    else if(message.action === "am_i_focused"){
-        userPaused = message.focused;
-        console.log("action am_i_focused userPaused: "+userPaused);
-    }
-    // to check by background if media in this tab was paused by user
-    // to either pause the media in the unfocused tab (playingTabId) or not
-    else if(message.action === "continue_handle_on_tab_activated"){
-        chrome.runtime.sendMessage({mediaStatus: "continue_handle_on_tab_activated", userPaused: userPaused});
-        console.log("action continue_handle_on_tab_activated userPaused: "+userPaused);
-    }
-    // response from background if site is excluded or not
-    else if(message.action === "check_site_exclusion"){
-        siteExcluded = message.exclusion;
-        if(!siteExcluded){
-            registerMedia();
-        }
-        console.log("action check_site_exclusion siteExcluded: "+siteExcluded);
+        case ACTION.pause:
+            if(currentMedia){
+                currentMedia.removeEventListener("pause", handleOnPause);
+                currentMedia.pause();
+                currentMedia.addEventListener("pause", handleOnPause);
+            }
+            else if(currentIframe){
+                currentIframe.postMessage({action: ACTION.pause}, currentIframe.origin);
+            }
+            break;
+
+        case ACTION.reload:
+            if(message.url !== currentURL || currentURL === undefined){
+                currentURL = message.url;
+                reloadContent();
+            }
+            break;
+
+        case "am_i_focused":
+            userPaused = message.focused;
+            console.log("action am_i_focused userPaused: "+userPaused);
+            break;
+
+        case "continue_handle_on_tab_activated":
+            // to check by background if media in this tab was paused by user
+            // to either pause the media in the unfocused tab (playingTabId) or not
+            chrome.runtime.sendMessage({mediaStatus: "continue_handle_on_tab_activated", userPaused: userPaused});
+            console.log("action continue_handle_on_tab_activated userPaused: "+userPaused);
+            break;
+
+        case "check_site_exclusion":
+            siteExcluded = message.exclusion;
+            if(!siteExcluded){
+                registerMedia();
+            }
+            console.log("action check_site_exclusion siteExcluded: "+siteExcluded);
+            break;
     }
 });
 
@@ -72,118 +93,92 @@ document.addEventListener('readystatechange', e => {
 
 function reloadContent(){
 
-    if(mode === FULLMODE){
-        mediaList.forEach(m => {
-            m.removeEventListener("play", handleOnPlayFull);
-            m.removeEventListener("play", handleOnEndedFull);
-            m.removeEventListener("pause", handleOnPause);
-        });
+    mediaList.forEach(m => {
+        m.removeEventListener("play", handleOnPlay);
+        m.removeEventListener("play", handleOnEnded);
+        m.removeEventListener("pause", handleOnPause);
+    });
 
-        currentMedia = undefined;
-    }
-    else {
-        if(currentMedia){
-            currentMedia.removeEventListener("play", handleOnPlayLight);
-            currentMedia.removeEventListener("ended", handleOnEndedLight);
-            currentMedia.removeEventListener("pause", handleOnPause);
-            currentMedia = undefined;
-        }
-    }
+    currentMedia = undefined;
+    currentIframe = undefined;
 
     registerMedia();
 
     // console.log("action reload content on url update");
 }
 
-function registerMedia(){
-    switch (mode){
-        case LIGHTMODE:
-            currentMedia = document.querySelector("VIDEO");
-            if(!currentMedia){
-                currentMedia = document.querySelector("AUDIO");
+async function registerMedia(){
+    mediaList = document.querySelectorAll("VIDEO", "AUDIO");
+    // console.log("media elements found: "+mediaList.length)
+    mediaList.forEach(m => {
+        m.addEventListener("play", handleOnPlay);
+        m.addEventListener("ended", handleOnEnded);
+
+        let notAdded = true;
+
+        // register video in the background
+        // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
+        if(m.paused === true && m.readyState === 4){
+            let played =  m.play();
+            if(played){
+                played.then(()=> m.pause())
+                .then(() => {
+                    m.addEventListener("pause", handleOnPause);
+                    notAdded = false;
+                })
+                .catch(e => console.log(e));
             }
-            if(!currentMedia){
-                currentMedia.addEventListener("play", handleOnPlayLight);
-                currentMedia.addEventListener("ended", handleOnEndedLight);
-            
-                // register video in the background
-                // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
-                if(currentMedia.paused === true && currentMedia.readyState === 4){
-                    currentMedia.play();
-                    currentMedia.pause();
-                }
-                else if (currentMedia.paused ===  false){
-                    currentMedia.pause();
-                    currentMedia.play();
-                }
+        }
+        else if (m.paused ===  false){
+            m.pause();
+            m.play();
+        }
 
-                currentMedia.addEventListener("pause", handleOnPause);
-
-            }
-
-            break;
-        
-        case FULLMODE:
-            mediaList = document.querySelectorAll("VIDEO", "AUDIO");
-            // console.log("media elements found: "+mediaList.length)
-            mediaList.forEach(m => {
-                m.addEventListener("play", handleOnPlayFull);
-                m.addEventListener("ended", handleOnEndedFull);
-
-                // register video in the background
-                // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
-                if(m.paused === true && m.readyState === 4){
-                    m.play();
-                    m.pause();
-                }
-                else if (m.paused ===  false){
-                    m.pause();
-                    m.play();
-                }
-
-                m.addEventListener("pause", handleOnPause);
-            });
-
-            break;
-    }
+        if(notAdded){
+            m.addEventListener("pause", handleOnPause);
+        }
+    });
 }
 
-function handleOnPlayLight(){
-    chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});
-    userPaused = false;
-}
-
-function handleOnEndedLight(){
-    chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
-}
-
-function handleOnPlayFull(e){
+function handleOnPlay(e){
     // if currentMedia exists
     // console.log("currentMedia");
     // console.log(currentMedia);
     if(currentMedia){
         //if currentMedia is not the trigering one and is already playing, content script will pause it 
-        if(currentMedia !== e.target && currentMedia.paused === false){
+        if(currentMedia !== e.target && !currentMedia.paused){
+            currentMedia.removeEventListener("pause", handleOnPause);
             currentMedia.pause();
+            currentMedia.addEventListener("pause", handleOnPause);
         }
         // user plays the media now which was previously paused
         else if (currentMedia === e.target && userPaused){
             chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});  
         }
-    //currentMedia is not found yet or undefined
-    }else {
+    }
+
+    if(currentIframe){
+        currentIframe.postMessage({action: ACTION.pause}, currentIframe.origin);
+        currentIframe = undefined;
+    }
+
+    // both currentMedia and currentIframe are not found yet or undefined; send message to background to register this tab
+    if(!currentMedia && !currentIframe) {
         chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});    
     }
         
     currentMedia = e.target;
+
+    // reset the userPaused
     userPaused = false;
 }
 
-function handleOnEndedFull(e){
+function handleOnEnded(e){
     if(e.target === currentMedia){
         chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
-        // undefine currentMedia to notify background if it replays
+        // undefine both to notify background if one of them replays
         currentMedia = undefined;
+        currentIframe = undefined;
     }
 }
 
@@ -195,5 +190,57 @@ function handleOnPause(e){
     if(e.target === currentMedia){
         // background will send the message back, parameter in callback always come as undefined so have to do this way
         chrome.runtime.sendMessage({mediaStatus: "am_i_focused"});
+    }
+}
+
+window.addEventListener("message", handleIframeMessage, false);
+
+function handleIframeMessage(e){
+    // if(!iframeSet.has(e.source)){
+    //     iframeSet.add(e.source);
+    // }
+
+    switch (e.data.mediaStatus) {
+        case MEDIAEVENT.played:
+            
+            // if current media is already there, do not send message to background
+            if(currentMedia){
+                if(!currentMedia.paused){
+                    // removing pause listener; we don't want to send this to background; user didn't pause
+                    currentMedia.removeEventListener("pause", handleOnPause);
+                    currentMedia.pause();
+                    currentMedia.addEventListener("pause", handleOnPause);
+                }
+
+                currentMedia = undefined;
+            }
+            // if current iframe is already there, do not send message to background
+            else if(currentIframe){
+                if(currentIframe !== e.source){
+                    currentIframe.postMessage({action: ACTION.pause}, currentIframe.origin);
+                }
+            }
+            // current media and current iframe doesn't exist yet, send message to background to register this tab
+            else {
+                chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.played});
+            }
+
+            currentIframe = e.source;
+
+            break;
+
+        case MEDIAEVENT.paused:
+            chrome.runtime.sendMessage({mediaStatus: "am_i_focused"});
+            break;
+
+        case MEDIAEVENT.ended:
+            if(currentIframe === e.source){
+                chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
+                // undefine both to notify background if one of them replays
+                currentMedia = undefined;
+                currentIframe = undefined;
+            }
+            break;
+            
     }
 }

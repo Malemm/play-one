@@ -14,7 +14,14 @@
     "content_scripts": [
         {
             "matches": ["https://*/*", "http://*/*"],
+            "all_frames": false,
             "js": ["content.js"],
+            "run_at": "document_start"
+        },
+        {
+            "matches": ["https://*/*", "http://*/*"],
+            "all_frames": true,
+            "js": ["iframe_content.js"],
             "run_at": "document_start"
         }
     ],
