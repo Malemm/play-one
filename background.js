@@ -46,7 +46,7 @@ function handleContentMessage(status, sender) {
         else {
 
             // 2.1 pause if there is an already playing media in another tab
-            if(sender.tab.id !== playingTabId && playingTabId !== undefined){
+            if(sender.tab.id !== playingTabId && playingTabId){
                 chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
             }
             console.log("1 playing tab id: "+playingTabId);
@@ -86,7 +86,7 @@ function handleContentMessage(status, sender) {
 
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             let focused = false;
-            if(tabs !== undefined){
+            if(tabs){
                 if(tabs[0].id === sender.tab.id) {
                     focused = true;
                 }
@@ -99,7 +99,7 @@ function handleContentMessage(status, sender) {
         if(sender.tab.id === focusedTabId){
             // if focused tab has known to play media AND it is not the currently playing tab AND it was not paused by user
             if (setOfTabs.has(focusedTabId) && focusedTabId !== playingTabId && !status.userPaused) {
-                if (playingTabId !== undefined) {
+                if (playingTabId) {
                     chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
                     // console.log("sending pause");
                 }

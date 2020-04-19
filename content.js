@@ -26,14 +26,14 @@ else{
 }
 
 chrome.runtime.onMessage.addListener((message) => {
-    if(message.action === ACTION.play && currentMedia !== undefined){
+    if(message.action === ACTION.play && currentMedia){
         // play only if user did not pause
         if(!userPaused){
             currentMedia.play();
         }
         console.log("action play userPaused: "+userPaused);
     }
-    else if(message.action === ACTION.pause && currentMedia !== undefined){
+    else if(message.action === ACTION.pause && currentMedia){
         currentMedia.pause();
     }
     else if(message.action === ACTION.reload){
@@ -82,7 +82,7 @@ function reloadContent(){
         currentMedia = undefined;
     }
     else {
-        if(currentMedia !== undefined){
+        if(currentMedia){
             currentMedia.removeEventListener("play", handleOnPlayLight);
             currentMedia.removeEventListener("ended", handleOnEndedLight);
             currentMedia.removeEventListener("pause", handleOnPause);
@@ -99,10 +99,10 @@ function registerMedia(){
     switch (mode){
         case LIGHTMODE:
             currentMedia = document.querySelector("VIDEO");
-            if(currentMedia === undefined){
+            if(!currentMedia){
                 currentMedia = document.querySelector("AUDIO");
             }
-            if(currentMedia !== undefined || currentMedia !== null){
+            if(!currentMedia){
                 currentMedia.addEventListener("play", handleOnPlayLight);
                 currentMedia.addEventListener("ended", handleOnEndedLight);
             
@@ -161,7 +161,7 @@ function handleOnPlayFull(e){
     // if currentMedia exists
     // console.log("currentMedia");
     // console.log(currentMedia);
-    if(currentMedia !== undefined){
+    if(currentMedia){
         //if currentMedia is not the trigering one and is already playing, content script will pause it 
         if(currentMedia !== e.target && currentMedia.paused === false){
             currentMedia.pause();
