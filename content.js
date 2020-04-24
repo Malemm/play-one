@@ -22,6 +22,7 @@ let userPaused = false;
 let siteExcluded = false;
 // let iframeSet = new Set();
 let currentIframe;
+let iframeRefs = new Set();
 
 chrome.runtime.onMessage.addListener(async message => {
     switch (message.action) {
@@ -64,8 +65,8 @@ chrome.runtime.onMessage.addListener(async message => {
                 forgetMedia();
                 registerMedia();
                 console.log("main content reload");
-                if(currentIframe){
-                    currentIframe.postMessage({action: ACTION.reload}, "*");
+                for(iframe of iframeRefs.values()){
+                    iframe.postMessage({action: ACTION.reload}, "*");
                 }
             }
             break;
@@ -98,8 +99,8 @@ chrome.runtime.onMessage.addListener(async message => {
 
             enabled = true;
             registerMedia();
-            if(currentIframe){
-                currentIframe.postMessage({action: "site_enabled"}, "*");
+            for(iframe of iframeRefs.values()){
+                iframe.postMessage({action: "site_enabled"}, "*");
             }
             break;
 
@@ -107,8 +108,8 @@ chrome.runtime.onMessage.addListener(async message => {
 
             enabled = false;
 
-            if(currentIframe){
-                currentIframe.postMessage({action: "site_disabled"}, "*");
+            for(iframe of iframeRefs.values()){
+                iframe.postMessage({action: "site_disabled"}, "*");
             }
 
             if(currentMedia || currentIframe){
@@ -116,7 +117,7 @@ chrome.runtime.onMessage.addListener(async message => {
             }
 
             forgetMedia();
-            
+
             break;
     }
 });
@@ -231,9 +232,10 @@ function handleOnPause(e){
 window.addEventListener("message", handleIframeMessage, false);
 
 function handleIframeMessage(e){
-    // if(!iframeSet.has(e.source)){
-    //     iframeSet.add(e.source);
-    // }
+
+    if(!iframeRefs.has(e.source)){
+        iframeRefs.add(e.source);
+    }
 
     switch (e.data.mediaStatus) {
         case MEDIAEVENT.played:
