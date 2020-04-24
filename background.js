@@ -59,7 +59,7 @@ function handleContentMessage(status, sender) {
 
         case MEDIAEVENT.ended:
 
-            // remove the playingTabId if media has ended so that 2.1 will fail if media is replayed again in the same focused tab
+            // remove the playingTabId if media has ended so that 2.1 will fail if media is replayed (set loop) again in the same focused tab
             if (sender.tab.id === playingTabId){
                 playingTabId = undefined;
             }
