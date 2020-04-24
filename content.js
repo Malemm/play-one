@@ -38,7 +38,7 @@ chrome.runtime.onMessage.addListener(async message => {
             else if(currentIframe){
                 // play only if user did not pause
                 if(!userPaused){
-                    currentIframe.postMessage({action: ACTION.play}, currentIframe.origin);
+                    currentIframe.postMessage({action: ACTION.play}, "*");
                 }
             }
             break;
@@ -50,7 +50,7 @@ chrome.runtime.onMessage.addListener(async message => {
                 currentMedia.addEventListener("pause", handleOnPause);
             }
             else if(currentIframe){
-                currentIframe.postMessage({action: ACTION.pause}, currentIframe.origin);
+                currentIframe.postMessage({action: ACTION.pause}, "*");
             }
             break;
 
@@ -58,6 +58,10 @@ chrome.runtime.onMessage.addListener(async message => {
             if(message.url !== currentURL || currentURL === undefined){
                 currentURL = message.url;
                 reloadContent();
+                console.log("main content reload");
+                if(currentIframe){
+                    currentIframe.postMessage({action: ACTION.reload}, "*");
+                }
             }
             break;
 
@@ -96,7 +100,7 @@ function reloadContent(){
     if(mediaList.length){
         mediaList.forEach(m => {
             m.removeEventListener("play", handleOnPlay);
-            m.removeEventListener("play", handleOnEnded);
+            m.removeEventListener("ended", handleOnEnded);
             m.removeEventListener("pause", handleOnPause);
         });
     }

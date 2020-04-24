@@ -43,6 +43,8 @@ async function handleParentMessage(e){
             }
             break;
         case ACTION.reload:
+            ireloadContent();
+            console.log("iframe content reload");
             break;
     }
 }
@@ -61,9 +63,24 @@ catch(e){
             iregisterMedia();
         }
     });
-
 }
 
+function ireloadContent(){
+
+    if(imediaList.length){
+        imediaList.forEach(m => {
+            m.removeEventListener("play", ihandleOnPlay);
+            m.removeEventListener("ended", ihandleOnEnded);
+            m.removeEventListener("pause", ihandleOnPause);
+        });
+    }
+    
+    icurrentMedia = undefined;
+
+    iregisterMedia();
+
+    // console.log("action reload content on url update");
+}
 
 async function iregisterMedia(){
     console.log("iframe register media");
