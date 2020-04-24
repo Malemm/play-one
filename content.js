@@ -14,6 +14,7 @@
 
 const isParent = true;
 
+let enabled = false;
 let mediaList= [];
 let currentMedia;
 let currentURL;
@@ -25,6 +26,7 @@ let currentIframe;
 chrome.runtime.onMessage.addListener(async message => {
     switch (message.action) {
         case ACTION.play:
+
             if(currentMedia){
                 // play only if user did not pause
                 if(!userPaused){
@@ -44,6 +46,7 @@ chrome.runtime.onMessage.addListener(async message => {
             break;
 
         case ACTION.pause:
+
             if(currentMedia){
                 currentMedia.removeEventListener("pause", handleOnPause);
                 currentMedia.pause();
@@ -55,9 +58,11 @@ chrome.runtime.onMessage.addListener(async message => {
             break;
 
         case ACTION.reload:
+
             if(message.url !== currentURL || currentURL === undefined){
                 currentURL = message.url;
-                reloadContent();
+                forgetMedia();
+                registerMedia();
                 console.log("main content reload");
                 if(currentIframe){
                     currentIframe.postMessage({action: ACTION.reload}, "*");
@@ -66,11 +71,13 @@ chrome.runtime.onMessage.addListener(async message => {
             break;
 
         case "am_i_focused":
+
             userPaused = message.focused;
             console.log("action am_i_focused userPaused: "+userPaused);
             break;
 
         case "continue_handle_on_tab_activated":
+
             // to check by background if media in this tab was paused by user
             // to either pause the media in the unfocused tab (playingTabId) or not
             chrome.runtime.sendMessage({mediaStatus: "continue_handle_on_tab_activated", userPaused: userPaused});
@@ -78,11 +85,38 @@ chrome.runtime.onMessage.addListener(async message => {
             break;
 
         case "check_site_exclusion":
+
             siteExcluded = message.exclusion;
             if(!siteExcluded){
                 registerMedia();
+                enabled = true;
             }
             console.log("action check_site_exclusion siteExcluded: "+siteExcluded);
+            break;
+
+        case "site_enabled":
+
+            enabled = true;
+            registerMedia();
+            if(currentIframe){
+                currentIframe.postMessage({action: "site_enabled"}, "*");
+            }
+            break;
+
+        case "site_disabled":
+
+            enabled = false;
+
+            if(currentIframe){
+                currentIframe.postMessage({action: "site_disabled"}, "*");
+            }
+
+            if(currentMedia || currentIframe){
+                chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
+            }
+
+            forgetMedia();
+            
             break;
     }
 });
@@ -91,11 +125,10 @@ document.addEventListener('readystatechange', e => {
     if (e.target.readyState === "complete") {
         // check with background if this site is excluded
         chrome.runtime.sendMessage({mediaStatus: "check_site_exclusion"});
-        // registerMedia();
     }
 });
 
-function reloadContent(){
+function forgetMedia(){
 
     if(mediaList.length){
         mediaList.forEach(m => {
@@ -107,10 +140,6 @@ function reloadContent(){
     
     currentMedia = undefined;
     currentIframe = undefined;
-
-    registerMedia();
-
-    // console.log("action reload content on url update");
 }
 
 async function registerMedia(){
@@ -164,7 +193,7 @@ function handleOnPlay(e){
     }
 
     if(currentIframe){
-        currentIframe.postMessage({action: ACTION.pause}, currentIframe.origin);
+        currentIframe.postMessage({action: ACTION.pause}, "*");
         currentIframe = undefined;
     }
 
@@ -223,7 +252,7 @@ function handleIframeMessage(e){
             // if current iframe is already there, do not send message to background
             else if(currentIframe){
                 if(currentIframe !== e.source){
-                    currentIframe.postMessage({action: ACTION.pause}, currentIframe.origin);
+                    currentIframe.postMessage({action: ACTION.pause}, "*");
                 }
             }
             // current media and current iframe doesn't exist yet, send message to background to register this tab
@@ -232,20 +261,36 @@ function handleIframeMessage(e){
             }
 
             currentIframe = e.source;
-
             break;
 
         case MEDIAEVENT.paused:
+
             chrome.runtime.sendMessage({mediaStatus: "am_i_focused"});
             break;
 
         case MEDIAEVENT.ended:
+
             if(currentIframe === e.source){
                 chrome.runtime.sendMessage({mediaStatus: MEDIAEVENT.ended});
                 // undefine both to notify background if one of them replays
                 currentMedia = undefined;
                 currentIframe = undefined;
             }
+            break;
+
+        case "check_ready_state_complete":
+
+            if(document.readyState === "complete"){
+                e.source.postMessage({action: "check_ready_state_complete", complete: true}, "*");
+            }
+            else {
+                e.source.postMessage({action: "check_ready_state_complete", complete: false}, "*");
+            }
+            break;
+
+        case "check_site_exclusion":
+
+            e.source.postMessage({action: "check_site_exclusion", exclusion: !enabled}, "*");
             break;
             
     }

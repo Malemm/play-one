@@ -23,9 +23,11 @@ let setOfTabs = new Set();
 let exclusionSet = new Set();
 let doubleClickPressedOnce = false;
 
-const title_text = "Play-One  [Plays only one video/audio at a time]";
+const titleText = "Play-One  [Plays only one video/audio at a time]";
 
 function handleContentMessage(status, sender) {
+
+    let site;
 
     switch(status.mediaStatus){
         case MEDIAEVENT.played:
@@ -50,7 +52,7 @@ function handleContentMessage(status, sender) {
                 console.log("2 playing tab id: "+playingTabId);
     
                 setOfTabs.add(playingTabId);
-                const site = getSite(sender.url)
+                site = getSite(sender.url)
                 updateIconTextOnEnabledSiteWithMedia(site);
             }
             break;
@@ -64,7 +66,7 @@ function handleContentMessage(status, sender) {
 
             setOfTabs.delete(sender.tab.id);
 
-            const site = getSite(sender.url);
+            site = getSite(sender.url);
             updateIconTextOnEnabledSiteWithNoMedia(site);
             break;
 
@@ -101,7 +103,7 @@ function handleContentMessage(status, sender) {
         case "check_site_exclusion":
 
             console.log(sender.tab.url);
-            let site = getSite(sender.tab.url);
+            site = getSite(sender.tab.url);
             console.log(site);
             let excluded = false;
             if (exclusionSet.has(site)){
@@ -200,7 +202,6 @@ function toggleExclusion(tab){
     doubleClickPressedOnce = true;
 
     setTimeout(()=>{doubleClickPressedOnce = false}, 1000);
-
 }
 
 function includeOrExcludeSite(url, tabId){
@@ -213,10 +214,12 @@ function includeOrExcludeSite(url, tabId){
         else {
             updateIconTextOnEnabledSiteWithNoMedia(site);
         }
+        chrome.tabs.sendMessage(tabId, {action: "site_enabled"});
     }
     else {
         exclusionSet.add(site);
         updateIconTextOnDisabledSite(site);
+        chrome.tabs.sendMessage(tabId, {action: "site_disabled"});
     }
 
     // update the exclusion list
@@ -226,17 +229,17 @@ function includeOrExcludeSite(url, tabId){
 
 function updateIconTextOnEnabledSiteWithNoMedia(url){
     chrome.browserAction.setIcon({path : {"48": "images/icon_48_active_no_media.png"}});
-    chrome.browserAction.setTitle({title: title_text+"\nDouble click to disable on "+url});
+    chrome.browserAction.setTitle({title: titleText+"\nDouble click to disable on "+url});
 }
 
 function updateIconTextOnEnabledSiteWithMedia(url){
     chrome.browserAction.setIcon({path : {"48": "images/icon_48_active_media.png"}});
-    chrome.browserAction.setTitle({title: title_text+"\nDouble click to disable on "+url});
+    chrome.browserAction.setTitle({title: titleText+"\nDouble click to disable on "+url});
 }
 
 function updateIconTextOnDisabledSite(url){
     chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
-    chrome.browserAction.setTitle({title: title_text+"\nDouble click to enable on "+url});
+    chrome.browserAction.setTitle({title: titleText+"\nDouble click to enable on "+url});
 }
 
 function getSite (a) {

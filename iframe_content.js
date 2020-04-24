@@ -27,6 +27,7 @@ catch(e){
 async function handleParentMessage(e){
     switch (e.data.action) {
         case ACTION.play:
+
             if(icurrentMedia){
                 icurrentMedia.removeEventListener("play", ihandleOnPlay);
                 let played = icurrentMedia.play();
@@ -35,16 +36,53 @@ async function handleParentMessage(e){
                 }
             }
             break;
+
         case ACTION.pause:
+
             if(icurrentMedia){
                 icurrentMedia.removeEventListener("pause", ihandleOnPause);
                 icurrentMedia.pause();
                 icurrentMedia.addEventListener("pause", ihandleOnPause);
             }
             break;
+
         case ACTION.reload:
-            ireloadContent();
+
+            iforgetMedia();
+            iregisterMedia();
             console.log("iframe content reload");
+            break;
+
+        case "check_ready_state_complete":
+
+            let complete = e.data.complete;
+            if(complete){
+                window.parent.postMessage({mediaStatus: "check_site_exclusion"}, "*");
+            }
+            else {
+                setTimeout(()=>{
+                    window.parent.postMessage({mediaStatus: "check_ready_state_complete"}, "*");
+                }, 1500);
+            }
+            break;
+
+        case "check_site_exclusion":
+
+            let siteExcluded = e.data.exclusion;
+            if(!siteExcluded){
+                iregisterMedia();
+            }
+            console.log("iframe check site exclusion "+siteExcluded);
+            break;
+
+        case "site_enabled":
+
+            iregisterMedia();
+            break;
+    
+        case "site_disabled":
+
+            iforgetMedia();
             break;
     }
 }
@@ -60,12 +98,12 @@ catch(e){
 
     document.addEventListener('readystatechange', e => {
         if (e.target.readyState === "complete") {
-            iregisterMedia();
+            window.parent.postMessage({mediaStatus: "check_ready_state_complete"}, "*");
         }
     });
 }
 
-function ireloadContent(){
+function iforgetMedia(){
 
     if(imediaList.length){
         imediaList.forEach(m => {
@@ -76,10 +114,6 @@ function ireloadContent(){
     }
     
     icurrentMedia = undefined;
-
-    iregisterMedia();
-
-    // console.log("action reload content on url update");
 }
 
 async function iregisterMedia(){
