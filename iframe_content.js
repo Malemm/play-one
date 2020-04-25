@@ -124,29 +124,12 @@ async function iregisterMedia(){
         m.addEventListener("play", ihandleOnPlay);
         m.addEventListener("ended", ihandleOnEnded);
 
-        let notAdded = true;
-        
-        // register video in the background
-        // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
-        if(m.paused === true && m.readyState === 4){
-            let played =  m.play();
-            if(played){
-                played.then(()=> m.pause())
-                .then(() => {
-                    m.addEventListener("pause", ihandleOnPause);
-                    notAdded = false;
-                })
-                .catch(e => console.log(e));
-            }
+        // if media is already started playing before handleOnPlay is registered, pause and play to notify main script
+        if(m.paused === false){
+           m.pause();
+           m.play();
         }
-        else if (m.paused ===  false){
-            m.pause();
-            m.play();
-        }
-
-        if(notAdded){
-            m.addEventListener("pause", ihandleOnPause);
-        }
+        m.addEventListener("pause", ihandleOnPause);
     });
 }
 

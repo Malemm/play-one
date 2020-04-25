@@ -33,8 +33,8 @@ function handleContentMessage(status, sender) {
         case MEDIAEVENT.played:
 
             console.log("playingTabId "+playingTabId);
-            // 1. media started playing in unfocused tab
-            if (sender.tab.id !== focusedTabId){
+            // 1. media started playing in unfocused tab and there is already a playing tab
+            if (sender.tab.id !== focusedTabId && playingTabId){
                 
                 chrome.tabs.sendMessage(sender.tab.id, {action: ACTION.pause});
     

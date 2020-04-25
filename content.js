@@ -62,10 +62,16 @@ chrome.runtime.onMessage.addListener(async message => {
 
             if(message.url !== currentURL || currentURL === undefined){
                 currentURL = message.url;
-                forgetMedia();
-                registerMedia();
                 console.log("main content reload");
-                console.log(document.readyState);
+                forgetMedia();
+                setTimeout(()=>{
+                    registerMedia();
+                    if(mediaList.length===0){
+                        // give another chance for slow internet
+                        setTimeout(registerMedia, 4000);
+                        console.log("reload register media second attempt started");
+                    }
+                }, 3000);
                 for(iframe of iframeRefs.values()){
                     iframe.postMessage({action: ACTION.reload}, "*");
                 }
@@ -149,38 +155,23 @@ function forgetMedia(){
     
     currentMedia = undefined;
     currentIframe = undefined;
+
+    mediaList= [];
 }
 
 async function registerMedia(){
     mediaList = document.querySelectorAll("VIDEO", "AUDIO");
-    // console.log("media elements found: "+mediaList.length)
+    console.log("media elements found: "+mediaList.length)
     mediaList.forEach(m => {
         m.addEventListener("play", handleOnPlay);
         m.addEventListener("ended", handleOnEnded);
 
-        let notAdded = true;
-
-        // register video in the background
-        // readyState 4 = HAVE_ENOUGH_DATA - enough data available to start playing
-        if(m.paused === true && m.readyState === 4){
-            let played =  m.play();
-            if(played){
-                played.then(()=> m.pause())
-                .then(() => {
-                    m.addEventListener("pause", handleOnPause);
-                    notAdded = false;
-                })
-                .catch(e => console.log(e));
-            }
-        }
-        else if (m.paused ===  false){
+        // if media is already started playing before handleOnPlay is registered, pause and play to notify background
+        if(m.paused === false){
             m.pause();
             m.play();
         }
-
-        if(notAdded){
-            m.addEventListener("pause", handleOnPause);
-        }
+        m.addEventListener("pause", handleOnPause);
     });
 }
 
@@ -241,9 +232,8 @@ window.addEventListener("message", handleIframeMessage, false);
 
 function handleIframeMessage(e){
 
-    if(!iframeRefs.has(e.source)){
-        iframeRefs.add(e.source);
-    }
+    // iframeRefs is a set
+    iframeRefs.add(e.source);
 
     switch (e.data.mediaStatus) {
         case MEDIAEVENT.played:
