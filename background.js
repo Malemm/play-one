@@ -235,17 +235,17 @@ function includeOrExcludeSite(url, tabId){
 }
 
 function updateIconTextOnEnabledSiteWithNoMedia(url){
-    chrome.browserAction.setIcon({path : {"48": "images/icon_48_active_no_media.png"}});
+    chrome.browserAction.setIcon({path : {"48": "images/purple-48.png"}});
     chrome.browserAction.setTitle({title: titleText+"\nDouble click to disable on "+url});
 }
 
 function updateIconTextOnEnabledSiteWithMedia(url){
-    chrome.browserAction.setIcon({path : {"48": "images/icon_48_active_media.png"}});
+    chrome.browserAction.setIcon({path : {"48": "images/red-48.png"}});
     chrome.browserAction.setTitle({title: titleText+"\nDouble click to disable on "+url});
 }
 
 function updateIconTextOnDisabledSite(url){
-    chrome.browserAction.setIcon({path : {"48": "images/icon_48_inactive.png"}});
+    chrome.browserAction.setIcon({path : {"48": "images/black-48.png"}});
     chrome.browserAction.setTitle({title: titleText+"\nDouble click to enable on "+url});
 }
 

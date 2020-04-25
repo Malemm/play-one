@@ -35,14 +35,14 @@
 
     "browser_action": {
         "default_icon": {
-            "48": "images/icon_48_active_no_media.png"
+            "48": "images/purple-48.png"
         },
-        "default_title": "Play-One"
+        "default_title": "Play-One  [Plays only one video/audio at a time]"
     },
     
     "icons": {
-        "16": "images/icon_16.png",
-        "48": "images/icon_48_active_no_media.png",
-        "128": "images/icon_128.png"
+        "16": "images/purple-16.png",
+        "48": "images/purple-48.png",
+        "128": "images/purple-128.png"
     }
 }
