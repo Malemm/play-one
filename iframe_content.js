@@ -15,7 +15,7 @@ let icurrentMedia;
 
 const debug = true;
 
-async function handleParentMessage(e){
+function handleParentMessage(e){
     switch (e.data.action) {
         case ACTION.play:
 
@@ -137,7 +137,7 @@ function iforgetMedia(){
     icurrentMedia = undefined;
 }
 
-async function iregisterMedia(){
+function iregisterMedia(){
     imediaList = document.querySelectorAll("VIDEO", "AUDIO");
     if(debug){
         console.log("iframe :: Media elements "+imediaList.length);
