@@ -108,7 +108,6 @@ function handleContentMessage(status, sender) {
         case "check_site_exclusion":
 
             site = getSite(sender.tab.url);
-            console.log(site);
             let excluded = false;
             if (exclusionSet.has(site)){
                 excluded = true;
