@@ -27,7 +27,7 @@ const titleText = "Play-One  [Plays only one video/audio at a time]";
 
 function handleContentMessage(status, sender) {
 
-    let site;
+    let site = getSite(sender.url);;
 
     switch(status.mediaStatus){
         case MEDIAEVENT.played:
@@ -39,6 +39,8 @@ function handleContentMessage(status, sender) {
                 chrome.tabs.sendMessage(sender.tab.id, {action: ACTION.pause});
     
                 setOfTabs.add(sender.tab.id);
+
+                console.log("MEDIAEVENT.played :: Paused unfocused tab "+sender.tab.id+" "+site);
             }
             // 2. media started playing in now focused tab
             else {
@@ -46,14 +48,16 @@ function handleContentMessage(status, sender) {
                 // 2.1 pause if there is an already playing media in another tab
                 if(sender.tab.id !== playingTabId && playingTabId){
                     chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
+                    console.log("MEDIAEVENT.played :: Paused "+playingTabId);
                 }
-                console.log("1 playing tab id: "+playingTabId);
+
                 playingTabId = sender.tab.id;
-                console.log("2 playing tab id: "+playingTabId);
     
                 setOfTabs.add(playingTabId);
                 site = getSite(sender.url)
                 updateIconTextOnEnabledSiteWithMedia(site);
+
+                console.log("MEDIAEVENT.played :: Played "+sender.tab.id+" "+site);
             }
             break;
 
@@ -65,9 +69,9 @@ function handleContentMessage(status, sender) {
             }
 
             setOfTabs.delete(sender.tab.id);
-
-            site = getSite(sender.url);
             updateIconTextOnEnabledSiteWithNoMedia(site);
+
+            console.log("MEDIAEVENT.ended :: Ended "+sender.tab.id+" "+site);
             break;
 
         case "am_i_focused":
@@ -80,11 +84,12 @@ function handleContentMessage(status, sender) {
                 }
                 chrome.tabs.sendMessage(sender.tab.id, {action: "am_i_focused", focused: focused});
             });
+            console.log("am_i_focused :: "+sender.tab.id+" "+site);
             break;
 
         case "continue_handle_on_tab_activated":
 
-            // skip if focused tab is immediately changed before getting the userPaused response
+            // ignore if focused tab is immediately changed before getting the userPaused response
             if(sender.tab.id === focusedTabId){
                 // if focused tab has known to play media AND it is not the currently playing tab AND it was not paused by user
                 if (setOfTabs.has(focusedTabId) && focusedTabId !== playingTabId && !status.userPaused) {
@@ -98,6 +103,7 @@ function handleContentMessage(status, sender) {
                     chrome.tabs.sendMessage(playingTabId, {action: ACTION.play});
                 }
             }
+            console.log("continue_handle_on_tab_activated :: "+sender.tab.id+" "+site);
             break;
 
         case "check_site_exclusion":
@@ -110,6 +116,7 @@ function handleContentMessage(status, sender) {
                 excluded = true;
             }
             chrome.tabs.sendMessage(sender.tab.id, {action: "check_site_exclusion", exclusion: excluded});
+            console.log("check_site_exclusion :: "+sender.tab.id+" "+site);
             break;
 
     }
@@ -148,6 +155,7 @@ function handleOnTabRemoved(tabId) {
 
 function handleOnURLchanged(tab) {
 
+    // "auto_subframe" Any nested iframes that are automatically loaded by their parent.
     if(tab.transitionType !== "auto_subframe"){
 
         let site = getSite(tab.url);
@@ -155,7 +163,7 @@ function handleOnURLchanged(tab) {
         if(!exclusionSet.has(site)){
             chrome.tabs.sendMessage(tab.tabId, {action: ACTION.reload, url: tab.url});
             forgetTab(tab.tabId);
-            console.log("url updated "+tab.url+" "+tab.transitionType);
+            console.log("handleOnURLchanged :: "+tab.tabId+" "+site);
     
             if(setOfTabs.has(tab.id)){
                 updateIconTextOnEnabledSiteWithMedia(site);
@@ -215,11 +223,13 @@ function includeOrExcludeSite(url, tabId){
             updateIconTextOnEnabledSiteWithNoMedia(site);
         }
         chrome.tabs.sendMessage(tabId, {action: "site_enabled"});
+        console.log("site_enabled :: "+tabId+" "+site);
     }
     else {
         exclusionSet.add(site);
         updateIconTextOnDisabledSite(site);
         chrome.tabs.sendMessage(tabId, {action: "site_disabled"});
+        console.log("site_disabled :: "+tabId+" "+site);
     }
 
     // update the exclusion list
@@ -253,7 +263,6 @@ function getExclusionSet(){
         let excludedSites = data.play1ExcludedSites || [];
         exclusionSet = new Set(excludedSites);
     });
-    console.log(exclusionSet);
 }
 
 getExclusionSet();
