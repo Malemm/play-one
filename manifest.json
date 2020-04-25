@@ -31,7 +31,6 @@
     },
 
     "web_accessible_resources": [
-        "common.js"
     ],
 
     "browser_action": {

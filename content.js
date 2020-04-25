@@ -207,12 +207,7 @@ async function registerMedia(){
 }
 
 function handleOnPlay(e){
-    // if currentMedia exists
-    if(debug){
-        console.log("Main :: currentMedia ::");
-        console.log(currentMedia);
-    }
-    
+    // if currentMedia exists    
     if(currentMedia){
         //if currentMedia is not the trigering one and is already playing, content script will pause it 
         if(currentMedia !== e.target && !currentMedia.paused){
@@ -240,6 +235,10 @@ function handleOnPlay(e){
 
     // reset the userPaused
     userPaused = false;
+    if(debug){
+        console.log("Main :: currentMedia ::");
+        console.log(currentMedia);
+    }
 }
 
 function handleOnEnded(e){
