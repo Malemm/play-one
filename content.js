@@ -65,9 +65,11 @@ chrome.runtime.onMessage.addListener(async message => {
                 forgetMedia();
                 registerMedia();
                 console.log("main content reload");
+                console.log(document.readyState);
                 for(iframe of iframeRefs.values()){
                     iframe.postMessage({action: ACTION.reload}, "*");
                 }
+                iframeRefs.clear();
             }
             break;
 
@@ -122,11 +124,17 @@ chrome.runtime.onMessage.addListener(async message => {
     }
 });
 
-document.addEventListener('readystatechange', e => {
-    if (e.target.readyState === "complete") {
-        // check with background if this site is excluded
-        chrome.runtime.sendMessage({mediaStatus: "check_site_exclusion"});
-    }
+// document.addEventListener('readystatechange', e => {
+//     if (e.target.readyState === "complete") {
+//         // check with background if this site is excluded
+//         chrome.runtime.sendMessage({mediaStatus: "check_site_exclusion"});
+//     }
+// });
+
+window.addEventListener('load', function onWindowLoad(){
+    // check with background if this site is excluded
+    chrome.runtime.sendMessage({mediaStatus: "check_site_exclusion"});
+    window.removeEventListener('load', onWindowLoad);
 });
 
 function forgetMedia(){
