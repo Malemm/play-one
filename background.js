@@ -32,7 +32,6 @@ function handleContentMessage(status, sender) {
     switch(status.mediaStatus){
         case MEDIAEVENT.played:
 
-            console.log("playingTabId "+playingTabId);
             // 1. media started playing in unfocused tab and there is already a playing tab
             if (sender.tab.id !== focusedTabId && playingTabId){
                 
@@ -40,7 +39,7 @@ function handleContentMessage(status, sender) {
     
                 setOfTabs.add(sender.tab.id);
 
-                console.log("MEDIAEVENT.played :: Paused unfocused tab "+sender.tab.id+" "+site);
+                console.log("MEDIAEVENT.played :: Paused unfocused tab :: "+sender.tab.id+" "+site);
             }
             // 2. media started playing in now focused tab
             else {
@@ -48,7 +47,7 @@ function handleContentMessage(status, sender) {
                 // 2.1 pause if there is an already playing media in another tab
                 if(sender.tab.id !== playingTabId && playingTabId){
                     chrome.tabs.sendMessage(playingTabId, {action: ACTION.pause});
-                    console.log("MEDIAEVENT.played :: Paused "+playingTabId);
+                    console.log("MEDIAEVENT.played :: Paused :: "+playingTabId);
                 }
 
                 playingTabId = sender.tab.id;
@@ -57,7 +56,7 @@ function handleContentMessage(status, sender) {
                 site = getSite(sender.url)
                 updateIconTextOnEnabledSiteWithMedia(site);
 
-                console.log("MEDIAEVENT.played :: Played "+sender.tab.id+" "+site);
+                console.log("MEDIAEVENT.played :: Played :: "+sender.tab.id+" "+site);
             }
             break;
 
@@ -71,7 +70,7 @@ function handleContentMessage(status, sender) {
             setOfTabs.delete(sender.tab.id);
             updateIconTextOnEnabledSiteWithNoMedia(site);
 
-            console.log("MEDIAEVENT.ended :: Ended "+sender.tab.id+" "+site);
+            console.log("MEDIAEVENT.ended :: Ended :: "+sender.tab.id+" "+site);
             break;
 
         case "am_i_focused":
