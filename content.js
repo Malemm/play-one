@@ -21,11 +21,10 @@ let currentMedia;
 let currentURL;
 let userPaused = false;
 let siteExcluded = false;
-// let iframeSet = new Set();
 let currentIframe;
 let iframeRefs = new Set();
 
-chrome.runtime.onMessage.addListener(async message => {
+chrome.runtime.onMessage.addListener(message => {
     switch (message.action) {
         case ACTION.play:
 
@@ -188,7 +187,7 @@ function forgetMedia(){
     mediaList= [];
 }
 
-async function registerMedia(){
+function registerMedia(){
     mediaList = document.querySelectorAll("VIDEO", "AUDIO");
     if(debug){
         console.log("Main :: Media elements "+mediaList.length);
