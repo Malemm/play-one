@@ -76,7 +76,7 @@ function handleContentMessage(status, sender) {
         case "am_i_focused":
             chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
                 let focused = false;
-                if(tabs){
+                if(tabs.length){
                     if(tabs[0].id === sender.tab.id) {
                         focused = true;
                     }
@@ -113,7 +113,7 @@ function handleContentMessage(status, sender) {
                 excluded = true;
             }
             chrome.tabs.sendMessage(sender.tab.id, {action: "check_site_exclusion", exclusion: excluded});
-            console.log("check_site_exclusion :: "+sender.tab.id+" "+site);
+            console.log("check_site_exclusion :: "+sender.tab.id+" "+site+" "+excluded);
             break;
 
     }

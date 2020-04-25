@@ -1,6 +1,6 @@
 /* Content Script */
 
-// these 2 const will come from iframe_content
+// these 3 const will come from iframe_content
 // const ACTION = {
 //     play: 0,
 //     pause: 1,
@@ -11,6 +11,7 @@
 //     ended: 1,
 //     paused: 2
 // }
+// const debug = false;
 
 const isParent = true;
 
@@ -34,7 +35,17 @@ chrome.runtime.onMessage.addListener(async message => {
                     currentMedia.removeEventListener("play", handleOnPlay);
                     let played = currentMedia.play();
                     if(played){
-                        played.then(()=> currentMedia.addEventListener("play", handleOnPlay)).catch(e => console.log(e));
+                        played.then(()=> {
+                            currentMedia.addEventListener("play", handleOnPlay);
+                            if(debug){
+                                console.log("Background :: ACTION.play");
+                            }
+                        })
+                        .catch(e => {
+                            if(debug){
+                                console.log(e);
+                            }
+                        });
                     }
                 }
             }
@@ -52,6 +63,9 @@ chrome.runtime.onMessage.addListener(async message => {
                 currentMedia.removeEventListener("pause", handleOnPause);
                 currentMedia.pause();
                 currentMedia.addEventListener("pause", handleOnPause);
+                if(debug){
+                    console.log("Background :: ACTION.pause");
+                }
             }
             else if(currentIframe){
                 currentIframe.postMessage({action: ACTION.pause}, "*");
@@ -62,14 +76,18 @@ chrome.runtime.onMessage.addListener(async message => {
 
             if(message.url !== currentURL || currentURL === undefined){
                 currentURL = message.url;
-                console.log("main content reload");
                 forgetMedia();
                 setTimeout(()=>{
                     registerMedia();
                     if(mediaList.length===0){
                         // give another chance for slow internet
                         setTimeout(registerMedia, 4000);
-                        console.log("reload register media second attempt started");
+                        if(debug){
+                            console.log("Background :: ACTION.reload :: Second attempt");
+                        }
+                    }
+                    if(debug){
+                        console.log("Background :: ACTION.reload");
                     }
                 }, 3000);
                 for(iframe of iframeRefs.values()){
@@ -82,7 +100,9 @@ chrome.runtime.onMessage.addListener(async message => {
         case "am_i_focused":
 
             userPaused = message.focused;
-            console.log("action am_i_focused userPaused: "+userPaused);
+            if(debug){
+                console.log("Background :: am_i_focused :: userPaused "+userPaused);
+            }
             break;
 
         case "continue_handle_on_tab_activated":
@@ -90,7 +110,9 @@ chrome.runtime.onMessage.addListener(async message => {
             // to check by background if media in this tab was paused by user
             // to either pause the media in the unfocused tab (playingTabId) or not
             chrome.runtime.sendMessage({mediaStatus: "continue_handle_on_tab_activated", userPaused: userPaused});
-            console.log("action continue_handle_on_tab_activated userPaused: "+userPaused);
+            if(debug){
+                console.log("Background :: continue_handle_on_tab_activated :: userPaused "+userPaused);
+            }
             break;
 
         case "check_site_exclusion":
@@ -100,7 +122,9 @@ chrome.runtime.onMessage.addListener(async message => {
                 registerMedia();
                 enabled = true;
             }
-            console.log("action check_site_exclusion siteExcluded: "+siteExcluded);
+            if(debug){
+                console.log("Background :: check_site_exclusion :: siteExcluded "+siteExcluded);
+            }
             break;
 
         case "site_enabled":
@@ -109,6 +133,9 @@ chrome.runtime.onMessage.addListener(async message => {
             registerMedia();
             for(iframe of iframeRefs.values()){
                 iframe.postMessage({action: "site_enabled"}, "*");
+            }
+            if(debug){
+                console.log("Background :: site_enabled");
             }
             break;
 
@@ -125,7 +152,9 @@ chrome.runtime.onMessage.addListener(async message => {
             }
 
             forgetMedia();
-
+            if(debug){
+                console.log("Background :: site_disabled");
+            }
             break;
     }
 });
@@ -161,7 +190,9 @@ function forgetMedia(){
 
 async function registerMedia(){
     mediaList = document.querySelectorAll("VIDEO", "AUDIO");
-    console.log("media elements found: "+mediaList.length)
+    if(debug){
+        console.log("Main :: Media elements "+mediaList.length);
+    }
     mediaList.forEach(m => {
         m.addEventListener("play", handleOnPlay);
         m.addEventListener("ended", handleOnEnded);
@@ -177,8 +208,11 @@ async function registerMedia(){
 
 function handleOnPlay(e){
     // if currentMedia exists
-    // console.log("currentMedia");
-    // console.log(currentMedia);
+    if(debug){
+        console.log("Main :: currentMedia ::");
+        console.log(currentMedia);
+    }
+    
     if(currentMedia){
         //if currentMedia is not the trigering one and is already playing, content script will pause it 
         if(currentMedia !== e.target && !currentMedia.paused){

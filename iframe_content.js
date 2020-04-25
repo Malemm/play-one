@@ -13,16 +13,7 @@ const MEDIAEVENT = {
 let imediaList = [];
 let icurrentMedia;
 
-try{
-    if(isParent){
-        console.log("iframe add event listener");
-    }
-}
-catch(e){
-    console.log("iframe catch");
-    console.log(e);
-    window.addEventListener("message", handleParentMessage, false);
-}
+const debug = true;
 
 async function handleParentMessage(e){
     switch (e.data.action) {
@@ -32,7 +23,17 @@ async function handleParentMessage(e){
                 icurrentMedia.removeEventListener("play", ihandleOnPlay);
                 let played = icurrentMedia.play();
                 if(played){
-                    played.then(()=> icurrentMedia.addEventListener("play", ihandleOnPlay)).catch(e => console.log(e));
+                    played.then(()=> {
+                        icurrentMedia.addEventListener("play", ihandleOnPlay);
+                        if(debug){
+                            console.log("iframe :: ACTION.play");
+                        }
+                    })
+                    .catch(e => {
+                        if(debug){
+                            console.log(e);
+                        }
+                    });
                 }
             }
             break;
@@ -43,6 +44,9 @@ async function handleParentMessage(e){
                 icurrentMedia.removeEventListener("pause", ihandleOnPause);
                 icurrentMedia.pause();
                 icurrentMedia.addEventListener("pause", ihandleOnPause);
+                if(debug){
+                    console.log("iframe :: ACTION.pause");
+                }
             }
             break;
 
@@ -50,7 +54,9 @@ async function handleParentMessage(e){
 
             iforgetMedia();
             iregisterMedia();
-            console.log("iframe content reload");
+            if(debug){
+                console.log("iframe :: ACTION.reload");
+            }
             break;
 
         case "check_ready_state_complete":
@@ -72,35 +78,50 @@ async function handleParentMessage(e){
             if(!siteExcluded){
                 iregisterMedia();
             }
-            console.log("iframe check site exclusion "+siteExcluded);
+            if(debug){
+                console.log("iframe :: check_site_exclusion :: siteExcluded "+siteExcluded);
+            }
             break;
 
         case "site_enabled":
 
             iregisterMedia();
+            if(debug){
+                console.log("iframe :: site_enabled");
+            }
             break;
     
         case "site_disabled":
 
             iforgetMedia();
+            if(debug){
+                console.log("iframe :: site_disabled");
+            }
             break;
     }
 }
 
+// there has to be an elegant way to check the existence of isParent; this is all I could come up with for now :)
 try{
     if(isParent){
-        console.log("iframe add ready state change");
+        if(debug){
+            console.log("iframe_content on main");
+        }
     }
 }
 catch(e){
-    console.log("iframe catch");
-    console.log(e);
+    if(debug){
+        console.log("iframe found");
+        console.log(e);
+    }
 
     document.addEventListener('readystatechange', e => {
         if (e.target.readyState === "complete") {
             window.parent.postMessage({mediaStatus: "check_ready_state_complete"}, "*");
         }
     });
+
+    window.addEventListener("message", handleParentMessage, false);
 }
 
 function iforgetMedia(){
@@ -117,8 +138,10 @@ function iforgetMedia(){
 }
 
 async function iregisterMedia(){
-    console.log("iframe register media");
     imediaList = document.querySelectorAll("VIDEO", "AUDIO");
+    if(debug){
+        console.log("iframe :: Media elements "+imediaList.length);
+    }
 
     imediaList.forEach(m => {
         m.addEventListener("play", ihandleOnPlay);
@@ -152,8 +175,6 @@ function ihandleOnPlay(e){
     }
         
     icurrentMedia = e.target;
-
-    console.log("iframe play");
 }
 
 function ihandleOnEnded(e){
@@ -162,14 +183,10 @@ function ihandleOnEnded(e){
         // undefine icurrentMedia to notify background if it replays
         icurrentMedia = undefined;
     }
-
-    console.log("iframe ended");
 }
 
 function ihandleOnPause(e){
     if(e.target === icurrentMedia){
         window.parent.postMessage({mediaStatus: MEDIAEVENT.paused}, "*");
     }
-
-    console.log("iframe pause");
 }
